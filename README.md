@@ -1,39 +1,33 @@
 # Wangi
 
-A Laravel 12 application for managing tourist attraction activity sessions and guest allocations, powered by FilamentPHP admin panel.
+Aplikasi manajemen sesi aktivitas dan alokasi tamu untuk objek wisata, dibangun dengan Laravel 12 dan FilamentPHP admin panel.
 
-## Tech Stack
+---
 
-- **PHP 8.2+**, Laravel 12
-- **FilamentPHP** admin panel with Shield role/permission management
-- **MySQL** (dev), **SQLite in-memory** (tests)
-- **Vite** + **Tailwind CSS v4** + **Blade** templates
-- **Spatie** packages: `laravel-permission`, `laravel-activitylog`
-
-## Environment Setup
+## Setup Instruction
 
 ### Prerequisites
 
-- **PHP 8.2+** with extensions: `bcmath`, `ctype`, `json`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `tokenxml`, `xml`
-- **Composer** (v2+)
-- **Node.js** 18+ and **npm**
-- **MySQL** 8.0+ (or SQLite for quick local dev)
+- **PHP 8.2+** dengan ekstensi: `bcmath`, `ctype`, `json`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `tokenxml`, `xml`
+- **Composer** v2+
+- **Node.js** 18+ dan **npm**
+- **MySQL** 8.0+ (atau SQLite untuk development cepat)
 
-### Step-by-step
+### Langkah-langkah
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/your-org/wangi.git
+# 1. Clone repositori
+git clone https://github.com/thedutas80/wangi.git
 cd wangi
 
-# 2. Install PHP dependencies
+# 2. Install dependency PHP
 composer install
 
-# 3. Create environment file
+# 3. Buat file environment
 cp .env.example .env
 
-# 4. Configure database in .env
-#    For MySQL (recommended for full features):
+# 4. Konfigurasi database di .env
+#    Untuk MySQL (disarankan):
 #      DB_CONNECTION=mysql
 #      DB_HOST=127.0.0.1
 #      DB_PORT=3306
@@ -41,70 +35,110 @@ cp .env.example .env
 #      DB_USERNAME=root
 #      DB_PASSWORD=
 #
-#    For SQLite (quick start, no external DB needed):
+#    Untuk SQLite (cepat, tanpa DB eksternal):
 #      DB_CONNECTION=sqlite
-#      (database/database.sqlite will be created automatically)
 
 # 5. Generate app key
 php artisan key:generate
 
-# 6. Run migrations and seeders
+# 6. Jalankan migrasi dan seeder
 php artisan migrate --seed
 
-# 7. Install and build frontend assets
+# 7. Install dan build frontend
 npm install
 npm run build
+```
 
-# --- Quick alternative ---
-# All steps above in one command:
+Atau gunakan satu perintah:
+
+```bash
 composer setup
 ```
 
-### Admin Credentials
+### Menjalankan Dev Server
 
-After seeding, login at `/admin`:
+```bash
+composer dev
+```
+
+Menjalankan empat proses bersamaan: PHP server, queue worker, logs, dan Vite dev server.
+
+### Testing
+
+```bash
+composer test
+```
+
+Menjalankan `php artisan test` dengan SQLite in-memory — tanpa database eksternal.
+
+```bash
+php artisan test tests/Feature/ExampleTest.php   # Test file tertentu
+./vendor/bin/pint                                 # Cek style PHP
+```
+
+### Admin Panel
+
+Akses di `/admin` setelah seeder:
 
 | Email | Password | Role |
 |---|---|---|
 | admin@wangi.com | password | Admin |
 | operator@wangi.com | password | Operator |
 
-To re-seed:
+Re-seed:
 
 ```bash
 php artisan migrate:fresh --seed
 ```
 
-## Development
+---
 
-```bash
-composer dev
-```
+## Tech Stack
 
-Runs four concurrent processes: PHP server, queue worker, logs, and Vite dev server.
+| Komponen | Teknologi |
+|---|---|
+| **Backend** | PHP 8.2+, Laravel 12 |
+| **Admin Panel** | FilamentPHP 3.3 dengan Shield (role & permission) |
+| **Database** | MySQL (dev), SQLite in-memory (test) |
+| **Frontend** | Blade, Tailwind CSS v4, Vite |
+| **Package** | `spatie/laravel-permission`, `spatie/laravel-activitylog` |
+| **Queue & Cache** | Database driver |
 
-## Testing
+---
 
-```bash
-composer test
-```
+## Assumptions
 
-Clears config then runs `php artisan test`. Tests use in-memory SQLite — no external database needed.
+1. **Pengguna sudah familiar dengan Laravel** — dokumentasi ini tidak menjelaskan konsep dasar Laravel seperti Eloquent, migration, atau service container.
+2. **MySQL sebagai database production** — semua pengembangan dan deployment menggunakan MySQL; SQLite hanya untuk testing.
+3. **Satu sesi per hari per attraction** — logika bisnis tidak menangani sesi berulang (recurring); setiap sesi dibuat manual dengan tanggal spesifik.
+4. **Alokasi tamu selalu dalam satu transaksi** — tidak ada mekanisme partial booking atau waiting list.
+5. **Autentikasi menggunakan Filament** — tidak ada public-facing API atau frontend untuk pengunjung.
 
-Standalone commands:
+---
 
-```bash
-php artisan test tests/Feature/ExampleTest.php
-./vendor/bin/pint                         # PHP code style
-npm run build                              # Frontend build
-npm run dev                                # Vite dev server
-```
+## Tradeoffs
 
-### Resources
+1. **Status sesi diupdate via `retrieved` event** — alih-alih scheduler/cron job, status sesi diubah menjadi `inactive` saat model di-load dari DB jika sudah lewat waktu. Ini efisien untuk read-heavy, tapi tidak memperbarui sesi yang tidak pernah di-query. Tradeoff: kesederhanaan vs kelengkapan data.
+2. **Permissions di-seed manual** — Shield auto-discovery dimatikan (`discover_all_resources = false`). Permission dibuat manual via `RolePermissionSeeder`. Tradeoff: kontrol penuh vs kenyamanan.
+3. **Queue & cache pakai database driver** — tidak menggunakan Redis atau dedicated queue service. Tradeoff: setup sederhana vs performa tinggi.
+4. **Tidak ada pagination API** — semua data dikelola via Filament admin panel; tidak ada REST/GraphQL endpoint publik. Tradeoff: cepat develop vs fleksibilitas integrasi.
+5. **Locking optimistis via `lockForUpdate`** — alokasi menggunakan row-level locking untuk mencegah overcapacity. Tradeoff: konsistensi data vs throughput pada konkurensi tinggi.
+6. **Tidak ada scheduled task** — tidak ada command artisan untuk maintenance otomatis (expired session, cleanup, dll). Tradeoff: sederhana vs pemeliharaan otomatis.
 
-- **Master Data** — Attractions, Activity Sessions
-- **Operations** — Guest Allocations
-- **Admin** — Users, Roles (Shield at `/admin/shield/roles`)
+---
+
+## AI Usage
+
+Proyek ini dikerjakan dengan bantuan **AI coding assistant** untuk:
+
+- **Generasi boilerplate** — migration, model, factory, resource Filament dibuat dengan prompt ke AI, mempercepat setup awal.
+- **Dokumentasi** — README dan komentar kode ditulis/direvisi dengan bantuan AI.
+- **Refactoring** — AI digunakan untuk restruktur kode (misalnya memindahkan logic dari controller ke service layer).
+- **Testing** — test case dan data factory dibantu pembuatannya oleh AI.
+
+Semua output AI **selalu ditinjau dan diuji secara manual** sebelum di-commit. AI digunakan sebagai alat bantu produktivitas, bukan sebagai pengganti keputusan teknis.
+
+---
 
 ## Architecture
 
@@ -115,11 +149,7 @@ npm run dev                                # Vite dev server
 | `Attraction` | hasMany `ActivitySession` | Soft deletes |
 | `ActivitySession` | belongsTo `Attraction`, hasMany `GuestAllocation` | Table: `activity_sessions` |
 | `GuestAllocation` | belongsTo `ActivitySession`, `User` | — |
-| `User` | — | Has `role` column (admin/operator), uses Spatie `HasRoles` |
-
-### Service Layer
-
-`App\Services\AllocationService` handles all allocation create/update/delete operations inside `DB::transaction` with row-level locking (`lockForUpdate`).
+| `User` | — | Column `role` (admin/operator), Spatie `HasRoles` |
 
 ### Enums
 
@@ -130,12 +160,7 @@ npm run dev                                # Vite dev server
 
 ### Key Behaviors
 
-- Past sessions (date passed or date is today and end_time passed) are automatically marked as `inactive` upon retrieval
-- `scopeActive` automatically excludes past sessions from queries
-- Allocations cannot be created/updated for inactive, past, or full sessions
-
-## Configuration
-
-- `.editorconfig`: spaces, 4-space indent, LF line endings
-- Session, queue, and cache default to `database` driver
-- Permissions are seeded manually via `RolePermissionSeeder` (Shield auto-discovery is disabled)
+- **Auto-inactive**: sesi yang sudah lewat tanggal+jam otomatis menjadi `inactive` saat di-load dari database
+- **scopeActive**: query scope hanya mengembalikan sesi dengan status `active` yang belum lewat
+- **AllocationService**: semua operasi alokasi berjalan dalam `DB::transaction` dengan `lockForUpdate`
+- **Validasi alokasi**: tidak bisa membuat/mengubah alokasi untuk sesi inactive, sudah lewat, atau penuh
