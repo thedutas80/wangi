@@ -33,6 +33,8 @@ RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
     intl \
     opcache
 
+RUN echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY --from=node:22-slim /usr/local/bin /usr/local/bin
 COPY --from=node:22-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
