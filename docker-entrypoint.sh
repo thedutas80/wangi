@@ -1,9 +1,8 @@
 #!/bin/sh
 set -e
 
-# Substitute PORT in Nginx config
-envsubst '${PORT}' < /etc/nginx/sites-enabled/default > /tmp/nginx.conf
-mv /tmp/nginx.conf /etc/nginx/sites-enabled/default
+PORT="${PORT:-80}"
 
-# Execute CMD
+sed -i "s/__PORT__/$PORT/g" /etc/nginx/sites-enabled/default
+
 exec "$@"
