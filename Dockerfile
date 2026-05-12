@@ -2,10 +2,36 @@ FROM php:8.2-fpm AS base
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-RUN apt-get update && apt-get install -y \
-    nginx supervisor curl libpng-dev libonig-dev libxml2-dev libzip-dev zip unzip git gettext-base \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip xml intl opcache \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    supervisor \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libicu-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    zip \
+    unzip \
+    git \
+    gettext-base \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
+    && docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    xml \
+    intl \
+    opcache
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY --from=node:22-slim /usr/local/bin /usr/local/bin
