@@ -1,64 +1,31 @@
-FROM php:8.2-fpm AS base
+FROM php:8.3-cli
 
-ENV COMPOSER_ALLOW_SUPERUSER=1
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    nginx \
-    supervisor \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    libicu-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    zip \
-    unzip \
-    git \
-    gettext-base \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
-    && docker-php-ext-install -j$(nproc) \
-    pdo_mysql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
-    gd \
-    zip \
-    xml \
-    intl \
-    opcache
-
-RUN echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
+RUN apt-get update && apt-get install -y \
+    git unzip zip curl nodejs npm \
+    libpng-dev libonig-dev libxml2-dev \
+    libzip-dev libicu-dev \
+    libjpeg62-turbo-dev libfreetype6-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo_mysql mbstring exif pcntl bcmath gd zip xml intl
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-COPY --from=node:22-slim /usr/local/bin /usr/local/bin
-COPY --from=node:22-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 
-WORKDIR /var/www/html
+WORKDIR /app
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    && npm install && npm run build && rm -rf node_modules
+RUN composer install --no-interaction --optimize-autoloader
 
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN npm install
+RUN npm run build
 
-RUN php artisan config:clear || true \
-    && php artisan cache:clear || true \
-    && php artisan view:clear || true
+RUN php artisan config:clear || true
+RUN php artisan cache:clear || true
+RUN php artisan view:clear || true
 
-COPY docker/nginx.conf /etc/nginx/sites-enabled/default
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod -R 775 storage bootstrap/cache
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+EXPOSE 8080
 
-EXPOSE 80
-
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD php artisan serve --host=0.0.0.0 --port=$PORT
