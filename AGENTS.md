@@ -5,6 +5,7 @@
 | Action | Command |
 |---|---|
 | Full setup | `composer setup` (installs deps, creates `.env`, generates key, migrates, builds assets) |
+| Build for production | `composer build` (optimizes autoloader without dev, migrates, upgrades Filament) |
 | Dev server (all processes) | `composer dev` (serves PHP, queue worker, logs, Vite concurrently) |
 | Run tests | `composer test` (clears config then runs `php artisan test`) |
 | Single test file | `php artisan test tests/Feature/ExampleTest.php` |

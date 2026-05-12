@@ -36,6 +36,12 @@
         }
     },
     "scripts": {
+        "build": [
+            "Composer\\Config::disableProcessTimeout",
+            "composer install --optimize-autoloader --no-dev",
+            "@php artisan migrate --force",
+            "@php artisan filament:upgrade"
+        ],
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
