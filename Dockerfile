@@ -20,6 +20,7 @@ RUN composer install --no-interaction --optimize-autoloader
 RUN npm install
 RUN npm run build
 
+RUN php artisan filament:assets --no-interaction || true
 RUN php artisan config:clear || true
 RUN php artisan cache:clear || true
 RUN php artisan view:clear || true
