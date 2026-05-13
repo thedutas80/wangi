@@ -1,3 +1,7 @@
+<img width="1575" height="746" alt="image" src="https://github.com/user-attachments/assets/3f4e6ef1-32fd-4b15-bb36-fbf5f9e92f62" />
+
+
+
 # Wangi
 
 Aplikasi manajemen sesi aktivitas dan alokasi tamu untuk objek wisata, dibangun dengan Laravel 12 dan FilamentPHP admin panel.
